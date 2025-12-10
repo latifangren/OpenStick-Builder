@@ -1,7 +1,24 @@
 #!/bin/bash
 
 main() {
+    # Ensure resolv.conf is set correctly and locked
+    setup_resolv_conf
     cleanup_wwan
+}
+
+setup_resolv_conf() {
+    # Unlock resolv.conf if it was locked (in case it was changed)
+    chattr -i /etc/resolv.conf 2>/dev/null || true
+    
+    # Create resolv.conf with public DNS servers
+    cat > /etc/resolv.conf << 'EOF'
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+nameserver 9.9.9.9
+EOF
+    
+    # Lock resolv.conf to prevent it from being overwritten
+    chattr +i /etc/resolv.conf || true
 }
 
 cleanup_wwan() {

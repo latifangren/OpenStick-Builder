@@ -74,7 +74,7 @@ cp -a configs/dhcp.conf ${CHROOT}/etc/dnsmasq.d/dhcp.conf
 # hosts entry for the LAN IP
 cat <<EOF >> ${CHROOT}/etc/hosts
 
-192.168.100.1	${HOST_NAME}
+192.168.10.1	${HOST_NAME}
 EOF
 
 # add rc-local

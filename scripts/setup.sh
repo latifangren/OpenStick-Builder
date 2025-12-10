@@ -103,13 +103,26 @@ SystemMaxUse=300M
 SystemKeepFree=1G
 EOF
 
-# install dnsproxy (as a systemd service) and integrate with systemd-resolved
-bash /install_dnsproxy.sh systemd
+# DNS configuration: Use public DNS without filtering
+# Create resolv.conf with public DNS servers
+cat > /etc/resolv.conf << 'EOF'
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+nameserver 9.9.9.9
+EOF
 
-# Ensure NetworkManager and systemd-resolved are enabled and managing DNS (offline enable inside chroot)
+# Lock resolv.conf to prevent it from being overwritten
+chattr +i /etc/resolv.conf || true
+
+# Ensure NetworkManager is enabled (offline enable inside chroot)
 systemctl enable NetworkManager || true
-systemctl enable systemd-resolved || true
-ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+
+# Disable systemd-resolved to prevent DNS conflicts
+systemctl disable systemd-resolved || true
+
+# Disable dnsproxy service if it exists (from previous installations)
+systemctl disable dnsproxy || true
+systemctl stop dnsproxy || true
 
 # Ensure DHCP/DNS for USB and WIFI is active (for clients on br0)
 systemctl enable dnsmasq
@@ -148,4 +161,10 @@ net.ipv4.ip_forward=1
 # Enable IPv6 forwarding
 net.ipv6.conf.all.forwarding=1
 EOF
+fi
+
+# Enable SSH root login
+if [ -f /etc/ssh/sshd_config ]; then
+    sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 fi
