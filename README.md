@@ -142,7 +142,8 @@ Edit [`scripts/setup.sh`](scripts/setup.sh) to add/remove packages. Note that th
   | ----- | ---- |
   | ssid | 4G-UFI-XX |
   | password | 1234567890 |
-  | ip addr | 192.168.100.1 |
+  | ip addr | 192.168.10.1 |
+  | DHCP range | 192.168.10.50 - 192.168.10.150 |
 
 - Default user
   
@@ -150,6 +151,24 @@ Edit [`scripts/setup.sh`](scripts/setup.sh) to add/remove packages. Note that th
   | ----- | ---- |
   | username | user |
   | password | 1 |
+
+- DNS Configuration
+  
+  The firmware is configured to use public DNS servers without filtering:
+  - **Primary DNS**: 1.1.1.1 (Cloudflare)
+  - **Secondary DNS**: 8.8.8.8 (Google)
+  - **Tertiary DNS**: 9.9.9.9 (Quad9)
+  
+  The `/etc/resolv.conf` file is locked (`chattr +i`) to prevent it from being overwritten.
+  DNS hijacking/redirect has been disabled in nftables configuration.
+  
+  **Note**: AdGuard DNS proxy and DNS filtering have been disabled by default.
+
+- SSH Access
+  
+  Root login via SSH is enabled by default:
+  - **PermitRootLogin**: yes
+  - **PasswordAuthentication**: yes
  
 - If your device is not based on **UZ801**, modify `/boot/extlinux/extlinux.conf` to use the correct devicetree
   ```shell
@@ -170,3 +189,39 @@ Edit [`scripts/setup.sh`](scripts/setup.sh) to add/remove packages. Note that th
   wget -O - http://mirror.postmarketos.org/postmarketos/master/aarch64/linux-postmarketos-qcom-msm8916-6.12.1-r2.apk \
           | tar xkzf - -C / --exclude=.PKGINFO --exclude=.SIGN* 2>/dev/null
   ```
+
+## Default Configuration
+
+This firmware image comes pre-configured with the following settings:
+
+### Network Settings
+- **LAN IP**: 192.168.10.1/24
+- **DHCP Range**: 192.168.10.50 - 192.168.10.150 (lease time: 12h)
+- **IPv6 Prefix**: dead:beef::/64
+- **NAT**: Enabled for both IPv4 and IPv6
+
+### DNS Settings
+- **DNS Servers**: Public DNS (1.1.1.1, 8.8.8.8, 9.9.9.9) - no filtering
+- **DNS Filtering**: Disabled (AdGuard/dnsproxy removed)
+- **DNS Hijacking**: Disabled (no DNS redirect rules)
+- **resolv.conf**: Locked with `chattr +i` to prevent overwrites
+
+### Services
+- **NetworkManager**: Enabled
+- **systemd-resolved**: Disabled (to prevent DNS conflicts)
+- **dnsmasq**: Enabled (DHCP and DNS forwarding)
+- **nftables**: Enabled (NAT only, no DNS redirect)
+- **SSH**: Root login enabled
+
+### Modifying DNS Configuration
+
+If you need to change DNS settings, you must first unlock `/etc/resolv.conf`:
+
+```shell
+chattr -i /etc/resolv.conf
+nano /etc/resolv.conf
+# Make your changes, then lock it again:
+chattr +i /etc/resolv.conf
+```
+
+**Note**: After unlocking and modifying, remember to lock it again to prevent system services from overwriting your changes.
